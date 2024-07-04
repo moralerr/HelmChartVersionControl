@@ -1,4 +1,4 @@
-@Library('pipeline-commons@add-more-common-functions') _
+@Library('pipeline-commons') _
 import pipeline.commons.*
 
 pipeline {
@@ -13,7 +13,15 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: "https://github.com/${REPO_OWNER}/${REPO_NAME}.git"
+                script {
+                    withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
+                        sh """
+                        git clone https://${GITHUB_TOKEN}@github.com/${REPO_OWNER}/${REPO_NAME}.git
+                        cd ${REPO_NAME}
+                        git checkout main
+                        """
+                    }
+                }
             }
         }
         stage('Get Latest Jenkins Helm Chart Version') {
@@ -43,10 +51,13 @@ pipeline {
                 script {
                     newChartVersion = incrementMinorVersion(currentVersion)
                     updateHelmChartInfo(CHART_FILE_PATH, newChartVersion, latestVersion)
-                    sh "git checkout -b ${BRANCH_NAME}"
-                    sh "git add ${CHART_FILE_PATH}"
-                    sh "git commit -m 'Update Jenkins Helm chart to version ${latestVersion} and increment chart version to ${newChartVersion}'"
-                    sh "git push origin ${BRANCH_NAME}"
+                    sh """
+                    cd ${REPO_NAME}
+                    git checkout -b ${BRANCH_NAME}
+                    git add ${CHART_FILE_PATH}
+                    git commit -m 'Update Jenkins Helm chart to version ${latestVersion} and increment chart version to ${newChartVersion}'
+                    git push origin ${BRANCH_NAME}
+                    """
                 }
             }
         }
@@ -57,7 +68,7 @@ pipeline {
             steps {
                 script {
                     createPullRequest([
-                        apiUrl: "https://api.github.com",
+                        apiUrl: 'https://api.github.com',
                         owner: REPO_OWNER,
                         repo: REPO_NAME,
                         accessToken: GITHUB_TOKEN,
