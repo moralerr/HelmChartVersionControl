@@ -26,7 +26,7 @@ pipeline {
         stage('Get Latest Jenkins Helm Chart Version') {
             steps {
                 script {
-                    latestVersion = getLatestJenkinsHelmChartVersion()
+                    latestVersion = utils.getLatestJenkinsHelmChartVersion()
                     echo "Latest Jenkins Helm Chart Version: ${latestVersion}"
                 }
             }
@@ -34,7 +34,7 @@ pipeline {
         stage('Get Current Helm Chart Info') {
             steps {
                 script {
-                    currentInfo = getCurrentHelmChartInfo(REPO_OWNER, REPO_NAME, CHART_FILE_PATH, GITHUB_TOKEN)
+                    currentInfo = utils.getCurrentHelmChartInfo(REPO_OWNER, REPO_NAME, CHART_FILE_PATH, GITHUB_TOKEN)
                     currentVersion = currentInfo.chartVersion
                     dependencyVersion = currentInfo.dependencyVersion
                     echo "Current Helm Chart Version: ${currentVersion}"
@@ -48,8 +48,8 @@ pipeline {
             }
             steps {
                 script {
-                    newChartVersion = incrementMinorVersion(currentVersion)
-                    updateHelmChartInfo(CHART_FILE_PATH, newChartVersion, latestVersion)
+                    newChartVersion = utils.incrementMinorVersion(currentVersion)
+                    utils.updateHelmChartInfo(CHART_FILE_PATH, newChartVersion, latestVersion)
                     sh """
                     cd ${REPO_NAME}
                     git checkout -b ${BRANCH_NAME}
@@ -66,7 +66,7 @@ pipeline {
             }
             steps {
                 script {
-                    createPullRequest([
+                    utils.createPullRequest([
                         apiUrl: 'https://api.github.com',
                         owner: REPO_OWNER,
                         repo: REPO_NAME,
