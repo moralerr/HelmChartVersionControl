@@ -1,5 +1,4 @@
 @Library('pipeline-commons@add-more-common-functions') _
-import pipeline.commons.*
 
 pipeline {
     agent any
