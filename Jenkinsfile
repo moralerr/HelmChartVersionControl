@@ -4,7 +4,7 @@ import pipeline.commons.*
 pipeline {
     agent any
     environment {
-        GITHUB_TOKEN = credentials('github-token')
+        GITHUB_TOKEN = credentials('GITHUB_TOKEN')
         REPO_OWNER = 'moralerr'
         REPO_NAME = 'helm-charts'
         CHART_FILE_PATH = 'charts/jenkins/Chart.yaml'
