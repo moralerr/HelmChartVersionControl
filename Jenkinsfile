@@ -1,4 +1,4 @@
-@Library('pipeline-commons@add-more-common-functions') _
+@Library('pipeline-commons') _
 import pipeline.commons.*
 
 pipeline {
@@ -10,6 +10,9 @@ pipeline {
         CHART_FILE_PATH = 'charts/jenkins/Chart.yaml'.trim()
         BRANCH_NAME = "update-jenkins-helm-chart-${UUID.randomUUID().toString()}"
     }
+    triggers {
+        cron('H 1 * * *') // Run every day at 1 am
+    }
     stages {
         stage('Checkout') {
             steps {
@@ -20,7 +23,6 @@ pipeline {
                         cd ${REPO_NAME}
                         git checkout main
                         """
-                        stash includes: "${REPO_NAME}/**", name: 'source'
                     }
                 }
             }
@@ -28,23 +30,19 @@ pipeline {
         stage('Get Latest Jenkins Helm Chart Version') {
             steps {
                 script {
-                    unstash 'source'
                     latestVersion = utils.getLatestJenkinsHelmChartVersion()
                     echo "Latest Jenkins Helm Chart Version: ${latestVersion}"
-                    stash includes: "${REPO_NAME}/**", name: 'source'
                 }
             }
         }
         stage('Get Current Helm Chart Info') {
             steps {
                 script {
-                    unstash 'source'
                     currentInfo = utils.getCurrentHelmChartInfo(REPO_OWNER, REPO_NAME, CHART_FILE_PATH, GITHUB_TOKEN)
                     currentVersion = currentInfo.chartVersion
                     dependencyVersion = currentInfo.dependencyVersion
                     echo "Current Helm Chart Version: ${currentVersion}"
                     echo "Current Jenkins Dependency Version: ${dependencyVersion}"
-                    stash includes: "${REPO_NAME}/**", name: 'source'
                 }
             }
         }
@@ -54,7 +52,6 @@ pipeline {
             }
             steps {
                 script {
-                    unstash 'source'
                     newChartVersion = utils.incrementMinorVersion(currentVersion)
                     // Ensure we are in the correct directory before updating the file
                     dir(REPO_NAME) {
@@ -64,7 +61,6 @@ pipeline {
                         sh "git commit -m 'Update Jenkins Helm chart to version ${latestVersion} and increment chart version to ${newChartVersion}'"
                         sh "git push origin ${BRANCH_NAME}"
                     }
-                    stash includes: "${REPO_NAME}/**", name: 'source'
                 }
             }
         }
@@ -74,7 +70,6 @@ pipeline {
             }
             steps {
                 script {
-                    unstash 'source'
                     utils.createPullRequest([
                         apiUrl: "https://api.github.com",
                         owner: REPO_OWNER,
