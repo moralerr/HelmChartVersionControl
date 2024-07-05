@@ -48,11 +48,10 @@ pipeline {
             }
             steps {
                 script {
-                    sh "ls -lrat"
+                    sh "cd ${REPO_NAME}"
                     newChartVersion = utils.incrementMinorVersion(currentVersion)
                     utils.updateHelmChartInfo(CHART_FILE_PATH, newChartVersion, latestVersion)
                     sh """
-                    cd ${REPO_NAME}
                     git checkout -b ${BRANCH_NAME}
                     git add ${CHART_FILE_PATH}
                     git commit -m 'Update Jenkins Helm chart to version ${latestVersion} and increment chart version to ${newChartVersion}'
