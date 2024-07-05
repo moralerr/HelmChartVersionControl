@@ -1,19 +1,20 @@
-@Library('pipeline-commons@add-more-common-functions') _
+@Library('pipeline-commons') _
+import pipeline.commons.*
 
 pipeline {
     agent any
     environment {
-        GITHUB_TOKEN = credentials('GITHUB_TOKEN')
+        GITHUB_TOKEN = credentials('github-token')
         REPO_OWNER = 'moralerr'
         REPO_NAME = 'helm-charts'
-        CHART_FILE_PATH = 'charts/jenkins/Chart.yaml'
+        CHART_FILE_PATH = 'charts/jenkins/Chart.yaml'.trim()
         BRANCH_NAME = "update-jenkins-helm-chart-${UUID.randomUUID().toString()}"
     }
     stages {
         stage('Checkout') {
             steps {
                 script {
-                    withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
                         sh """
                         git clone https://${GITHUB_TOKEN}@github.com/${REPO_OWNER}/${REPO_NAME}.git
                         cd ${REPO_NAME}
@@ -23,10 +24,18 @@ pipeline {
                 }
             }
         }
+        stage('Debug') {
+            steps {
+                script {
+                    sh 'ls -lrat'
+                    sh "ls -lrat ${REPO_NAME}"
+                }
+            }
+        }
         stage('Get Latest Jenkins Helm Chart Version') {
             steps {
                 script {
-                    latestVersion = utils.getLatestJenkinsHelmChartVersion()
+                    latestVersion = getLatestJenkinsHelmChartVersion()
                     echo "Latest Jenkins Helm Chart Version: ${latestVersion}"
                 }
             }
@@ -34,7 +43,7 @@ pipeline {
         stage('Get Current Helm Chart Info') {
             steps {
                 script {
-                    currentInfo = utils.getCurrentHelmChartInfo(REPO_OWNER, REPO_NAME, CHART_FILE_PATH, GITHUB_TOKEN)
+                    currentInfo = getCurrentHelmChartInfo(REPO_OWNER, REPO_NAME, CHART_FILE_PATH, GITHUB_TOKEN)
                     currentVersion = currentInfo.chartVersion
                     dependencyVersion = currentInfo.dependencyVersion
                     echo "Current Helm Chart Version: ${currentVersion}"
@@ -48,15 +57,15 @@ pipeline {
             }
             steps {
                 script {
-                    sh "cd ${REPO_NAME}"
-                    newChartVersion = utils.incrementMinorVersion(currentVersion)
-                    utils.updateHelmChartInfo(CHART_FILE_PATH, newChartVersion, latestVersion)
-                    sh """
-                    git checkout -b ${BRANCH_NAME}
-                    git add ${CHART_FILE_PATH}
-                    git commit -m 'Update Jenkins Helm chart to version ${latestVersion} and increment chart version to ${newChartVersion}'
-                    git push origin ${BRANCH_NAME}
-                    """
+                    newChartVersion = incrementMinorVersion(currentVersion)
+                    // Ensure we are in the correct directory before updating the file
+                    dir(REPO_NAME) {
+                        updateHelmChartInfo(CHART_FILE_PATH, newChartVersion, latestVersion)
+                        sh "git checkout -b ${BRANCH_NAME}"
+                        sh "git add ${CHART_FILE_PATH}"
+                        sh "git commit -m 'Update Jenkins Helm chart to version ${latestVersion} and increment chart version to ${newChartVersion}'"
+                        sh "git push origin ${BRANCH_NAME}"
+                    }
                 }
             }
         }
@@ -66,8 +75,8 @@ pipeline {
             }
             steps {
                 script {
-                    utils.createPullRequest([
-                        apiUrl: 'https://api.github.com',
+                    createPullRequest([
+                        apiUrl: "https://api.github.com",
                         owner: REPO_OWNER,
                         repo: REPO_NAME,
                         accessToken: GITHUB_TOKEN,
