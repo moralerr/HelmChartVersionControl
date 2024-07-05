@@ -1,4 +1,4 @@
-@Library('pipeline-commons') _
+@Library('pipeline-commons@add-more-common-functions') _
 import pipeline.commons.*
 
 pipeline {
@@ -35,7 +35,7 @@ pipeline {
         stage('Get Latest Jenkins Helm Chart Version') {
             steps {
                 script {
-                    latestVersion = getLatestJenkinsHelmChartVersion()
+                    latestVersion = utils.getLatestJenkinsHelmChartVersion()
                     echo "Latest Jenkins Helm Chart Version: ${latestVersion}"
                 }
             }
@@ -43,7 +43,7 @@ pipeline {
         stage('Get Current Helm Chart Info') {
             steps {
                 script {
-                    currentInfo = getCurrentHelmChartInfo(REPO_OWNER, REPO_NAME, CHART_FILE_PATH, GITHUB_TOKEN)
+                    currentInfo = utils.getCurrentHelmChartInfo(REPO_OWNER, REPO_NAME, CHART_FILE_PATH, GITHUB_TOKEN)
                     currentVersion = currentInfo.chartVersion
                     dependencyVersion = currentInfo.dependencyVersion
                     echo "Current Helm Chart Version: ${currentVersion}"
@@ -57,10 +57,10 @@ pipeline {
             }
             steps {
                 script {
-                    newChartVersion = incrementMinorVersion(currentVersion)
+                    newChartVersion = utils.incrementMinorVersion(currentVersion)
                     // Ensure we are in the correct directory before updating the file
                     dir(REPO_NAME) {
-                        updateHelmChartInfo(CHART_FILE_PATH, newChartVersion, latestVersion)
+                        utils.updateHelmChartInfo(CHART_FILE_PATH, newChartVersion, latestVersion)
                         sh "git checkout -b ${BRANCH_NAME}"
                         sh "git add ${CHART_FILE_PATH}"
                         sh "git commit -m 'Update Jenkins Helm chart to version ${latestVersion} and increment chart version to ${newChartVersion}'"
@@ -75,7 +75,7 @@ pipeline {
             }
             steps {
                 script {
-                    createPullRequest([
+                    utils.createPullRequest([
                         apiUrl: "https://api.github.com",
                         owner: REPO_OWNER,
                         repo: REPO_NAME,
