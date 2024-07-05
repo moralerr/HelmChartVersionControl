@@ -20,34 +20,31 @@ pipeline {
                         cd ${REPO_NAME}
                         git checkout main
                         """
+                        stash includes: "${REPO_NAME}/**", name: 'source'
                     }
-                }
-            }
-        }
-        stage('Debug') {
-            steps {
-                script {
-                    sh 'ls -lrat'
-                    sh "ls -lrat ${REPO_NAME}"
                 }
             }
         }
         stage('Get Latest Jenkins Helm Chart Version') {
             steps {
                 script {
+                    unstash 'source'
                     latestVersion = utils.getLatestJenkinsHelmChartVersion()
                     echo "Latest Jenkins Helm Chart Version: ${latestVersion}"
+                    stash includes: "${REPO_NAME}/**", name: 'source'
                 }
             }
         }
         stage('Get Current Helm Chart Info') {
             steps {
                 script {
+                    unstash 'source'
                     currentInfo = utils.getCurrentHelmChartInfo(REPO_OWNER, REPO_NAME, CHART_FILE_PATH, GITHUB_TOKEN)
                     currentVersion = currentInfo.chartVersion
                     dependencyVersion = currentInfo.dependencyVersion
                     echo "Current Helm Chart Version: ${currentVersion}"
                     echo "Current Jenkins Dependency Version: ${dependencyVersion}"
+                    stash includes: "${REPO_NAME}/**", name: 'source'
                 }
             }
         }
@@ -57,6 +54,7 @@ pipeline {
             }
             steps {
                 script {
+                    unstash 'source'
                     newChartVersion = utils.incrementMinorVersion(currentVersion)
                     // Ensure we are in the correct directory before updating the file
                     dir(REPO_NAME) {
@@ -66,6 +64,7 @@ pipeline {
                         sh "git commit -m 'Update Jenkins Helm chart to version ${latestVersion} and increment chart version to ${newChartVersion}'"
                         sh "git push origin ${BRANCH_NAME}"
                     }
+                    stash includes: "${REPO_NAME}/**", name: 'source'
                 }
             }
         }
@@ -75,6 +74,7 @@ pipeline {
             }
             steps {
                 script {
+                    unstash 'source'
                     utils.createPullRequest([
                         apiUrl: "https://api.github.com",
                         owner: REPO_OWNER,
