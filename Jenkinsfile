@@ -4,7 +4,7 @@ import pipeline.commons.*
 pipeline {
     agent any
     environment {
-        GITHUB_TOKEN = credentials('github-token')
+        GITHUB_TOKEN = credentials('GITHUB_TOKEN')
         REPO_OWNER = 'moralerr'
         REPO_NAME = 'helm-charts'
         CHART_FILE_PATH = 'charts/jenkins/Chart.yaml'.trim()
@@ -14,7 +14,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
                         sh """
                         git clone https://${GITHUB_TOKEN}@github.com/${REPO_OWNER}/${REPO_NAME}.git
                         cd ${REPO_NAME}
