@@ -48,6 +48,7 @@ pipeline {
             }
             steps {
                 script {
+                    sh "ls -lrat"
                     newChartVersion = utils.incrementMinorVersion(currentVersion)
                     utils.updateHelmChartInfo(CHART_FILE_PATH, newChartVersion, latestVersion)
                     sh """
